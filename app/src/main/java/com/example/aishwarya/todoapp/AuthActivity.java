@@ -1,11 +1,13 @@
 package com.example.aishwarya.todoapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -87,6 +89,10 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void createAccount(String email, String password){
+        if (!validateForm()) {
+            return;
+        }
+
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
@@ -109,6 +115,10 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void signIn(String email, String password){
+        if (!validateForm()) {
+            return;
+        }
+
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
@@ -135,8 +145,40 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    private boolean validateForm() {
+        boolean valid = true;
+
+        String email = mEmailField.getText().toString();
+        if (TextUtils.isEmpty(email)) {
+            mEmailField.setError("Required.");
+            valid = false;
+        } else {
+            mEmailField.setError(null);
+        }
+
+        String password = mPasswordField.getText().toString();
+        if (TextUtils.isEmpty(password)) {
+            mPasswordField.setError("Required.");
+            valid = false;
+        } else {
+            mPasswordField.setError(null);
+        }
+
+        return valid;
+    }
+
     @Override
     public void onClick(View v) {
+        int i = v.getId();
+        if (i == R.id.user_sign_up_button) {
+            createAccount(mEmailField.getText().toString(), mPasswordField.getText().toString());
+            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+            startActivity(intent);
+        } else if (i == R.id.email_sign_in_button) {
+            signIn(mEmailField.getText().toString(), mPasswordField.getText().toString());
+            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+            startActivity(intent);
+        }
 
     }
 }
