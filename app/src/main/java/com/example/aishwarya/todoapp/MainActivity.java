@@ -1,12 +1,9 @@
 package com.example.aishwarya.todoapp;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
@@ -39,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
+    private FirebaseAuth mAuth;
+    private FirebaseUser mUser;
+    private String mUserId;
 
 
     @Override
@@ -46,98 +46,108 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mAuth = FirebaseAuth.getInstance();
+        mUser = mAuth.getCurrentUser();
 
-        // Get ListView object from xml
-        final ListView listView = (ListView) findViewById(R.id.listView);
+        if (mUser==null) {
+            loadLogInView();
+        }else{
+            mUserId = mUser.getUid();
 
-        // Create a new Adapter
-        final ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_list_item_1, android.R.id.text1);
+            // Get ListView object from xml
+            final ListView listView = (ListView) findViewById(R.id.listView);
 
-        // Assign adapter to ListView
-        listView.setAdapter(adapter);
+            // Create a new Adapter
+            final ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                    android.R.layout.simple_list_item_1, android.R.id.text1);
 
-        // Connect to the Firebase database
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
+            // Assign adapter to ListView
+            listView.setAdapter(adapter);
 
-        // Get a reference to the todoItems child items it the database
-        final DatabaseReference myRef = database.getReference("todoItems");
+            // Connect to the Firebase database
+            FirebaseDatabase database = FirebaseDatabase.getInstance();
 
-        // Assign a listener to detect changes to the child items
-        // of the database reference.
-        myRef.addChildEventListener(new ChildEventListener() {
+            // Get a reference to the todoItems child items it the database
+            final DatabaseReference myRef = database.getReference("todoItems");
 
-            // This function is called once for each child that exists
-            // when the listener is added. Then it is called
-            // each time a new child is added.
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                String value = dataSnapshot.getValue(String.class);
-                adapter.add(value);
-            }
+            // Assign a listener to detect changes to the child items
+            // of the database reference.
+            myRef.addChildEventListener(new ChildEventListener() {
 
-            // This function is called each time a child item is removed.
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-                String value = dataSnapshot.getValue(String.class);
-                adapter.remove(value);
-            }
+                // This function is called once for each child that exists
+                // when the listener is added. Then it is called
+                // each time a new child is added.
+                @Override
+                public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                    String value = dataSnapshot.getValue(String.class);
+                    adapter.add(value);
+                }
 
-            // The following functions are also required in ChildEventListener implementations.
-            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
-            }
+                // This function is called each time a child item is removed.
+                public void onChildRemoved(DataSnapshot dataSnapshot) {
+                    String value = dataSnapshot.getValue(String.class);
+                    adapter.remove(value);
+                }
 
-            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
-            }
+                // The following functions are also required in ChildEventListener implementations.
+                public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
+                }
 
-            @Override
-            public void onCancelled(DatabaseError error) {
-                // Failed to read value
-                Log.w("TAG:", "Failed to read value.", error.toException());
-            }
-        });
+                public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
+                }
 
-        // Add items via the Button and EditText at the bottom of the window.
-        final EditText text = (EditText) findViewById(R.id.todoText);
-        final Button button = (Button) findViewById(R.id.addButton);
+                @Override
+                public void onCancelled(DatabaseError error) {
+                    // Failed to read value
+                    Log.w("TAG:", "Failed to read value.", error.toException());
+                }
+            });
 
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
+            // Add items via the Button and EditText at the bottom of the window.
+            final EditText text = (EditText) findViewById(R.id.todoText);
+            final Button button = (Button) findViewById(R.id.addButton);
 
-                // Create a new child with a auto-generated ID.
-                DatabaseReference childRef = myRef.push();
+            button.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
 
-                // Set the child's data to the value passed in from the text box.
-                childRef.setValue(text.getText().toString());
+                    // Create a new child with a auto-generated ID.
+                    DatabaseReference childRef = myRef.push();
 
-            }
-        });
+                    // Set the child's data to the value passed in from the text box.
+                    childRef.setValue(text.getText().toString());
 
-        // Delete items when clicked
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                }
+            });
 
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
+            // Delete items when clicked
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
-                Query myQuery = myRef.orderByValue().equalTo((String)
-                        listView.getItemAtPosition(position));
+                public void onItemClick(AdapterView<?> parent, View view,
+                                        int position, long id) {
 
-                myQuery.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        if (dataSnapshot.hasChildren()) {
-                            DataSnapshot firstChild = dataSnapshot.getChildren().iterator().next();
-                            firstChild.getRef().removeValue();
+                    Query myQuery = myRef.orderByValue().equalTo((String)
+                            listView.getItemAtPosition(position));
+
+                    myQuery.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            if (dataSnapshot.hasChildren()) {
+                                DataSnapshot firstChild = dataSnapshot.getChildren().iterator().next();
+                                firstChild.getRef().removeValue();
+                            }
                         }
-                    }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                    }
-                })
-                ;
-            }
-        })
-        ;
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                        }
+                    })
+                    ;
+                }
+            })
+            ;
+        }
+
+
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
@@ -158,9 +168,11 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        if (id == R.id.action_logout) {
+            mAuth.signOut();
+            loadLogInView();
         }
+
 
         return super.onOptionsItemSelected(item);
     }
@@ -202,5 +214,12 @@ public class MainActivity extends AppCompatActivity {
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         AppIndex.AppIndexApi.end(client, getIndexApiAction());
         client.disconnect();
+    }
+
+    private void loadLogInView() {
+        Intent intent = new Intent(this, AuthActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }

@@ -20,7 +20,7 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-public class AuthActivity extends AppCompatActivity implements View.OnClickListener{
+public class AuthActivity extends AppCompatActivity{
 
     private static final String TAG = "EmailPassword";
 
@@ -30,6 +30,7 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
     private EditText mPasswordField;
 
     private FirebaseAuth mAuth;
+    private FirebaseUser mUser;
     private FirebaseAuth.AuthStateListener mAuthListener;
 
     @Override
@@ -48,23 +49,15 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
 //            }
 //        });
 
-
-        mEmailField = (EditText) findViewById(R.id.email);
-        mPasswordField = (EditText) findViewById(R.id.password);
-
-        // Buttons
-        findViewById(R.id.email_sign_in_button).setOnClickListener(this);
-        findViewById(R.id.user_sign_up_button).setOnClickListener(this);
-
-
         mAuth = FirebaseAuth.getInstance();
+        mUser = mAuth.getCurrentUser();
         mAuthListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser user = firebaseAuth.getCurrentUser();
-                if (user != null) {
+                mUser = firebaseAuth.getCurrentUser();
+                if (mUser != null) {
                     // User is signed in
-                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
+                    Log.d(TAG, "onAuthStateChanged:signed_in:" + mUser.getUid());
                 } else {
                     // User is signed out
                     Log.d(TAG, "onAuthStateChanged:signed_out");
@@ -72,7 +65,33 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
                 // ...
             }
         };
+
+
+        mEmailField = (EditText) findViewById(R.id.email);
+        mPasswordField = (EditText) findViewById(R.id.password);
+
+        // Buttons
+        findViewById(R.id.email_sign_in_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                signIn(mEmailField.getText().toString(), mPasswordField.getText().toString());
+
+            }
+        });
+        findViewById(R.id.user_sign_up_button).setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                createAccount(mEmailField.getText().toString(), mPasswordField.getText().toString());
+
+
+            }
+        });
+
+
+
     }
+
 
     @Override
     public void onStart() {
@@ -93,6 +112,8 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
 
+
+
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
@@ -105,6 +126,9 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
                         if (!task.isSuccessful()) {
                             Toast.makeText(AuthActivity.this, R.string.auth_failed,
                                     Toast.LENGTH_SHORT).show();
+                        }else{
+                            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+                            startActivity(intent);
                         }
 
                         // [START_EXCLUDE]
@@ -137,6 +161,9 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
                         // [START_EXCLUDE]
                         if (!task.isSuccessful()) {
                             mStatusTextView.setText(R.string.auth_failed);
+                        }else{
+                            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+                            startActivity(intent);
                         }
 
                         // [END_EXCLUDE]
@@ -167,18 +194,18 @@ public class AuthActivity extends AppCompatActivity implements View.OnClickListe
         return valid;
     }
 
-    @Override
-    public void onClick(View v) {
-        int i = v.getId();
-        if (i == R.id.user_sign_up_button) {
-            createAccount(mEmailField.getText().toString(), mPasswordField.getText().toString());
-            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
-            startActivity(intent);
-        } else if (i == R.id.email_sign_in_button) {
-            signIn(mEmailField.getText().toString(), mPasswordField.getText().toString());
-            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
-            startActivity(intent);
-        }
-
-    }
+//    @Override
+//    public void onClick(View v) {
+//        int i = v.getId();
+//        if (i == R.id.user_sign_up_button) {
+//            createAccount(mEmailField.getText().toString(), mPasswordField.getText().toString());
+//            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+//            startActivity(intent);
+//        } else if (i == R.id.email_sign_in_button) {
+//            signIn(mEmailField.getText().toString(), mPasswordField.getText().toString());
+//            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+//            startActivity(intent);
+//        }
+//
+//    }
 }
